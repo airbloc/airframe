@@ -1,8 +1,12 @@
 syntax = "proto3";
-option go_package = "pb";
+option go_package = "rpcserver";
+
+message GetRequest {
+    string uri = 1;
+}
 
 message GetResponse {
-    bytes data = 1;
+    string data = 1;
     string owner = 2;
     uint64 createdAt = 3;
     uint64 lastUpdatedAt = 4;
@@ -16,6 +20,11 @@ message PutRequest {
 }
 
 message PutResponse {
-    string uri = 1;
+    bool created = 1;
     uint64 feeUsed = 2;
+}
+
+service API {
+    rpc GetObject(GetRequest) returns (GetResponse) {}
+    rpc PutObject(PutRequest) returns (PutResponse) {}
 }

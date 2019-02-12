@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Profile string `default:"dev"`
 	Port    int    `default:"8080"`
+	RpcPort int    `default:"9090"`
 	Backend string `default:"memory"`
 }
 
@@ -18,12 +19,14 @@ type Config struct {
 func LoadConfig() *Config {
 	isDev := pflag.BoolP("dev", "d", false, "Enable development mode.")
 	port := pflag.IntP("port", "p", 8080, "Port of API server.")
+	rpcPort := pflag.IntP("rpcport", "r", 9090, "Port of RPC server.")
 	backend := pflag.StringP("backend", "b", "memory", "Backend type. [memory|leveldb|dynamodb]")
 	pflag.Parse()
 
 	// setup config from flag
 	config := &Config{
 		Port:    *port,
+		RpcPort: *rpcPort,
 		Backend: *backend,
 	}
 	if *isDev {

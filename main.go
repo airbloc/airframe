@@ -3,9 +3,11 @@ package main
 import (
 	"github.com/airbloc/airframe/apiserver"
 	"github.com/airbloc/airframe/database"
+	"github.com/airbloc/airframe/rpcserver"
 	"github.com/pkg/errors"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/airbloc/logger"
 )
@@ -23,11 +25,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	s := apiserver.NewServer(db, config.Port, config.Profile == "dev")
-	if err := s.Start(); err != nil {
-		log.Error("failed to start server", err)
-		os.Exit(1)
-	}
+	api := apiserver.New(db, config.Port, config.Profile == "dev")
+	rpc := rpcserver.New(db, config.RpcPort, config.Profile == "dev")
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		if err := api.Start(); err != nil {
+			log.Error("failed to start api server", err)
+			os.Exit(1)
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		if err := rpc.Start(); err != nil {
+			log.Error("failed to start rpc server", err)
+			os.Exit(1)
+		}
+		wg.Done()
+	}()
+	wg.Wait()
 }
 
 func initDatabase(backendType string) (database.Database, error) {

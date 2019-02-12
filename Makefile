@@ -11,10 +11,10 @@ SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 GENERATE_SRCS := $(shell grep -rwl --exclude-dir={./build,./vendor} --include=*.go . -e "go:generate")
 
 # protobuf sources
-PROTO_DIR := proto
+PROTO_DIR := rpcserver
 PROTO_SRCS := $(shell find $(PROTO_DIR) -name *.proto)
 
-.PHONY: all build clean install uninstall fmt simplify check deps generate run
+.PHONY: all build clean install uninstall fmt simplify check deps generate run proto
 
 all: check build
 
@@ -59,7 +59,7 @@ endif
 proto: deps
 	@for PROTO in $(PROTO_SRCS); do \
 		protoc -I/usr/local/include -I. \
-			--go_out=. \
+			--go_out=plugins=grpc:. \
 			$$PROTO; \
 	done
 
