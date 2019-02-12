@@ -2,6 +2,7 @@ package database
 
 import (
 	"bytes"
+	"encoding/gob"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"golang.org/x/crypto/sha3"
@@ -31,7 +32,9 @@ func GetOwnerFromSignature(obj *Object, sig []byte) (PublicKey, error) {
 	return p, nil
 }
 
-func GetObjectHash(typ, id, data string) [32]byte {
-	preimage := fmt.Sprintf("%s/%s/%s", typ, id, data)
-	return sha3.Sum256([]byte(preimage))
+func GetObjectHash(typ, id string, data Payload) [32]byte {
+	rawData := new(bytes.Buffer)
+	gob.NewEncoder(rawData).Encode(data)
+	typAndId := fmt.Sprintf("%s/%s", typ, id)
+	return sha3.Sum256(append([]byte(typAndId), rawData.Bytes()...))
 }

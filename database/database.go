@@ -19,16 +19,19 @@ var (
 // PublicKey is 33-byte compressed ECDSA public key.
 type PublicKey [33]byte
 
+// Payload is a shorthand of `map[string]interface{}`.
+type Payload map[string]interface{}
+
 type Database interface {
 	Get(uri string) (*Object, error)
 	Exists(typ, id string) (bool, error)
-	Put(typ, id, data string, signature []byte) (*PutResult, error)
+	Put(typ, id string, data Payload, signature []byte) (*PutResult, error)
 }
 
 type Object struct {
 	ID   string
 	Type string
-	Data string
+	Data Payload
 
 	Owner PublicKey
 

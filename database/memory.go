@@ -35,7 +35,7 @@ func (imdb *InMemoryDatabase) Exists(typ, id string) (bool, error) {
 	return exists, nil
 }
 
-func (imdb *InMemoryDatabase) Put(typ, id, data string, signature []byte) (*PutResult, error) {
+func (imdb *InMemoryDatabase) Put(typ, id string, data Payload, signature []byte) (*PutResult, error) {
 	if strings.Contains(id, "/") {
 		return nil, ErrInvalidID
 	}
