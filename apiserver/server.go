@@ -13,11 +13,10 @@ var (
 )
 
 type Server struct {
-	router *gin.Engine
-	port   string
+	server *http.Server
 }
 
-func NewServer(backend database.Database, port int, debug bool) *Server {
+func New(backend database.Database, port int, debug bool) *Server {
 	if !debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -29,8 +28,10 @@ func NewServer(backend database.Database, port int, debug bool) *Server {
 	RegisterV1API(r, backend)
 
 	return &Server{
-		router: r,
-		port:   fmt.Sprintf(":%d", port),
+		server: &http.Server{
+			Addr:    fmt.Sprintf(":%d", port),
+			Handler: r,
+		},
 	}
 }
 
@@ -79,5 +80,14 @@ func getRequestPath(r *http.Request) string {
 }
 
 func (s *Server) Start() error {
-	return s.router.Run(s.port)
+	if err := s.server.ListenAndServe(); err != http.ErrServerClosed {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) Stop() {
+	if err := s.server.Close(); err != nil {
+		log.Error("failed to close HTTP server", err)
+	}
 }
