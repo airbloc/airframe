@@ -2,7 +2,6 @@ package apiserver
 
 import (
 	"github.com/airbloc/airframe/database"
-	"github.com/airbloc/logger"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gin-gonic/gin"
@@ -10,7 +9,6 @@ import (
 )
 
 var (
-	log                 = logger.New("api")
 	msgInvalidSigLength = "should be 65-byte ECDSA signature with [R || S || V] format"
 )
 

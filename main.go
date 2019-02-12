@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	s := apiserver.NewServer(db, config.Port)
+	s := apiserver.NewServer(db, config.Port, config.Profile == "dev")
 	if err := s.Start(); err != nil {
 		log.Error("failed to start server", err)
 		os.Exit(1)
