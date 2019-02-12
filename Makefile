@@ -19,7 +19,7 @@ PROTO_SRCS := $(shell find $(PROTO_DIR) -name *.proto)
 all: check build
 
 $(TARGET): $(SRC)
-	@go build -o build/$(TARGET)
+	@go build -o build/$(TARGET) -tags=jsoniter
 
 build: $(TARGET)
 	@true
