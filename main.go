@@ -1,10 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"github.com/airbloc/airframe/apiserver"
 	"github.com/airbloc/airframe/database"
 	"github.com/pkg/errors"
-	"net/http"
 	"os"
 	"runtime"
 
@@ -23,7 +22,12 @@ func main() {
 		log.Error("error: failed to initialize database", err)
 		os.Exit(1)
 	}
-	startServer(db, config.Port)
+
+	s := apiserver.NewServer(db, config.Port)
+	if err := s.Start(); err != nil {
+		log.Error("failed to start server", err)
+		os.Exit(1)
+	}
 }
 
 func initDatabase(backendType string) (database.Database, error) {
@@ -31,19 +35,4 @@ func initDatabase(backendType string) (database.Database, error) {
 		return database.NewInMemoryDatabase()
 	}
 	return nil, errors.Errorf("unknown backend: %s", backendType)
-}
-
-func startServer(db database.Database, port int) {
-	log := logger.New("webserver")
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// TODO: implement me
-	})
-
-	// server listen
-	log.Info("Server listening at http://localhost:%d", port)
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), mux); err != http.ErrServerClosed {
-		log.Error("failed to start HTTP server", err)
-	}
 }
