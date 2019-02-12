@@ -1,0 +1,21 @@
+syntax = "proto3";
+option go_package = "pb";
+
+message GetResponse {
+    bytes data = 1;
+    string owner = 2;
+    uint64 createdAt = 3;
+    uint64 lastUpdatedAt = 4;
+}
+
+message PutRequest {
+    string type = 1;
+    string id = 2;
+    string data = 3;
+    bytes signature = 4;
+}
+
+message PutResponse {
+    string uri = 1;
+    uint64 feeUsed = 2;
+}

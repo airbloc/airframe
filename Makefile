@@ -10,6 +10,10 @@ SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # sources that needs to be run with go generate
 GENERATE_SRCS := $(shell grep -rwl --exclude-dir={./build,./vendor} --include=*.go . -e "go:generate")
 
+# protobuf sources
+PROTO_DIR := proto
+PROTO_SRCS := $(shell find $(PROTO_DIR) -name *.proto)
+
 .PHONY: all build clean install uninstall fmt simplify check deps generate run
 
 all: check build
@@ -44,6 +48,20 @@ ifeq ($(shell which easyjson), )
 	@echo "Installing dependency: easyjson"
 	@go get -u github.com/mailru/easyjson/...
 endif
+ifeq ($(shell which protoc-gen-go), )
+	@echo "Installing dependency: protoc-gen-go"
+	@go get -u github.com/golang/protobuf/protoc-gen-go
+endif
+ifeq ($(shell which protoc), )
+	$(error protoc is not installed. You must install it manually on https://developers.google.com/protocol-buffers/)
+endif
+
+proto: deps
+	@for PROTO in $(PROTO_SRCS); do \
+		protoc -I/usr/local/include -I. \
+			--go_out=. \
+			$$PROTO; \
+	done
 
 generate: deps
 	@for GENERATE_SRC in $(GENERATE_SRCS); do \
