@@ -10,7 +10,7 @@ import (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	config := LoadConfigFrom("resources/config.yml")
+	config := LoadConfig()
 
 	log := logger.New("main")
 	log.Info("Using %s configuration", config.Profile)

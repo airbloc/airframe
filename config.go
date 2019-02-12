@@ -1,46 +1,35 @@
 package main
 
 import (
-	"log"
+	"github.com/spf13/pflag"
 	"os"
-	"time"
 
 	"github.com/airbloc/logger"
-
-	"github.com/jinzhu/configor"
-)
-
-const (
-	// EnvPrefix is used to override config attributes with environment variables.
-	// e.g) ABL_PORT=8080 go run main.go
-	EnvPrefix = "ABL"
 )
 
 // Config stores service configurations.
 type Config struct {
 	Profile string `default:"dev"`
 	Port    int    `default:"8080"`
-
-	// Kafka configurations
-	Kafka struct {
-		Topic      string
-		BrokerList []string `yaml:"broker_list"`
-	}
-
-	// HTTP request configurations.
-	RequestTimeout time.Duration `yaml:"request_timeout"`
-	MaxConnections int           `yaml:"request_max_connections"`
+	Backend string `default:"memory"`
 }
 
 // LoadConfigFrom loads default config.
-func LoadConfigFrom(path string) *Config {
-	config := Config{}
-	cfgr := configor.New(&configor.Config{
-		Environment: os.Getenv(EnvPrefix + "_PROFILE"),
-		ENVPrefix:   EnvPrefix,
-	})
-	if err := cfgr.Load(&config, path); err != nil {
-		log.Fatalf("failed to load config %s: %v\n", path, err)
+func LoadConfig() *Config {
+	isDev := pflag.BoolP("dev", "d", false, "Enable development mode.")
+	port := pflag.IntP("port", "p", 8080, "Port of API server.")
+	backend := pflag.StringP("backend", "b", "memory", "Backend type. [memory|leveldb|dynamodb]")
+	pflag.Parse()
+
+	// setup config from flag
+	config := &Config{
+		Port:    *port,
+		Backend: *backend,
+	}
+	if *isDev {
+		config.Profile = "dev"
+	} else {
+		config.Profile = "production"
 	}
 
 	// setup global logger accordingly.
@@ -53,5 +42,5 @@ func LoadConfigFrom(path string) *Config {
 		writer.ColorsEnabled = true
 	}
 	logger.SetLogger(writer)
-	return &config
+	return config
 }
