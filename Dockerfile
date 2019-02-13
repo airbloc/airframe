@@ -5,10 +5,11 @@ ENV PATH /go/bin:$PATH
 ENV AB_PROFILE production
 
 # Copy local package files to the container's workspace.
-WORKDIR /app
+WORKDIR /airframe
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make build
+RUN make build
 
 EXPOSE 8080
-ENTRYPOINT [ "/app/build/app" ]
+EXPOSE 9090
+ENTRYPOINT [ "/airframe/build/airframe" ]
