@@ -102,8 +102,8 @@ jobs:
           # change it if you need it xD (e.g. to /airbridge)
           name: Push image to ECR
           command: |
-            docker tag $CIRCLE_PROJECT_REPONAME:$CIRCLE_SHA1 $AWS_ECR_URL/$IMAGE_NAME:latest
-            docker push $AWS_ECR_URL/$IMAGE_NAME:latest
+            docker tag $CIRCLE_PROJECT_REPONAME:$CIRCLE_SHA1 $AWS_ECR_URL/$IMAGE_NAME:$CIRCLE_SHA1
+            docker push $AWS_ECR_URL/$IMAGE_NAME:$CIRCLE_SHA1
 
 workflows:
   build-deploy:
