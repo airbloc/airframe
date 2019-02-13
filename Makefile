@@ -7,12 +7,8 @@ TARGET := $(shell echo $${PWD\#\#*/})
 # go source files, ignore vendor directory
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-# sources that needs to be run with go generate
-GENERATE_SRCS := $(shell grep -rwl --exclude-dir={./build,./vendor} --include=*.go . -e "go:generate")
-
 # protobuf sources
-PROTO_DIR := rpcserver
-PROTO_SRCS := $(shell find $(PROTO_DIR) -name *.proto)
+PROTO_SRCS := $(shell find . -name *.proto)
 
 .PHONY: all build clean install uninstall fmt simplify check deps generate run proto
 
@@ -64,6 +60,7 @@ proto: deps
 	done
 
 generate: deps
+	$(eval GENERATE_SRCS := $(shell git --no-pager grep -wl "go:generate" -- "*.go" ":(exclude)vendor"))
 	@for GENERATE_SRC in $(GENERATE_SRCS); do \
 		go generate $$GENERATE_SRC; \
 	done
@@ -77,4 +74,4 @@ test-all:
 	@go test -v `go list ./... | grep -v test/e2e`
 
 test-e2e:
-	@go test -v `go list ./test/e2e`
+	@go test -v `go list ./test/e2e` $(FLAGS)
