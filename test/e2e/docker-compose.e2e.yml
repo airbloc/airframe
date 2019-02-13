@@ -1,0 +1,16 @@
+# NOTE THAT this file should be executed on project root.
+version: "3"
+services:
+  start_app:
+    image: dadarek/wait-for-dependencies
+    depends_on:
+      - app
+    command: app:9090
+  e2e-tests:
+    build:
+      context: .
+      dockerfile: test/e2e/Dockerfile.e2e
+    environment:
+      ENDPOINT: app:9090
+    depends_on:
+      - app
