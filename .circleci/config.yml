@@ -15,7 +15,6 @@ jobs:
       - image: circleci/golang:1.11
     environment:
       TEST_RESULTS: "/tmp/test-results"
-      GO111MODULE: "on"
     steps:
       - checkout
       - restore_cache:
@@ -25,20 +24,16 @@ jobs:
       - run:
           name: Setup test tools
           command: |
-            echo 'export GO111MODULE=on' >> $BASH_ENV
             go get github.com/jstemmer/go-junit-report
             mkdir $TEST_RESULTS
       - run:
-          name: Clone go.sum
-          command: |
-            cp go.sum go.sum.original
-      - run:
           name: Run unit tests
           command: |
+            echo 'export GO111MODULE=on' >> $BASH_ENV
             make test | tee ${TEST_RESULTS}/go-test.out
             cat ${TEST_RESULTS}/go-test.out | go-junit-report > ${TEST_RESULTS}/go-test-report.xml
       - save_cache:
-          key: go-mod-v1-{{ checksum "go.sum.original" }}
+          key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
       - store_test_results:
@@ -59,11 +54,18 @@ jobs:
           name: Build Image
           command: docker build -t $IMAGE_NAME .
       - run:
+          # since CircleCI remote docker doesn't support connecting to spawned container, we can't use `make test-e2e`.
+          # the only way is to compile E2E test into a binary and inject to the container.
+          name: Build Test Executable
+          command: |
+            make FLAGS="-c -o e2e.test" test-e2e
+      - run:
           name: End-to-End Test Container
           command: |
-            docker run -d -p 9090:9090 -p 8080:8080 --name test-container $IMAGE_NAME
+            docker run -d -p 9090:9090 -p 8080:8080 --name testcontainer $IMAGE_NAME
             sleep 10
-            docker exec test-container make test-e2e
+            docker cp e2e.test testcontainer:/e2e.test
+            docker exec testcontainer /test.e2e -test.v
       - run:
           name: Save image to an archive
           command: |
