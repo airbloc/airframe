@@ -1,0 +1,119 @@
+# You need to set up following environment variables at CircleCI Contexts:
+# Context Name: aws-ecr
+# Environment Variables:
+# - AWS_ECR_URL
+# - AWS_ACCESS_KEY_ID
+# - AWS_SECRET_ACCESS_KEY
+# - AWS_DEFAULT_REGION
+version: 2.1
+orbs:
+  aws-ecs: circleci/aws-ecs@0.0.3
+
+jobs:
+  test:
+    docker:
+      - image: circleci/golang:1.11
+    environment:
+      TEST_RESULTS: /tmp/test-results
+      GO111MODULE: on
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+            - go-mod-v1-
+      - run:
+          name: Setup test tools
+          command: |
+            go get github.com/jstemmer/go-junit-report
+            mkdir $TEST_RESULTS
+      - run:
+          name: Clone go.sum
+          command: |
+            cp go.sum go.sum.original
+      - run:
+          name: Run unit tests
+          command: |
+            make test | tee ${TEST_RESULTS}/go-test.out
+            cat ${TEST_RESULTS}/go-test.out | go-junit-report > ${TEST_RESULTS}/go-test-report.xml
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum.original" }}
+          paths:
+            - "/go/pkg/mod"
+      - store_test_results:
+          path: /tmp/test-results
+
+  build-docker:
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Set Up Environment Variables for Docker
+          command: |
+            echo 'export IMAGE_NAME="${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}"' >> $BASH_ENV
+      - run:
+          name: Build Image
+          command: docker build -t $IMAGE_NAME .
+      - run:
+          name: End-to-End Test Container
+          command: |
+            docker run -d -p 9090:9090 -p 8080:8080 --name test-container $IMAGE_NAME
+            sleep 10
+            docker exec test-container make test-e2e
+      - run:
+          name: Save image to an archive
+          command: |
+            mkdir docker-image
+            docker save -o docker-image/image.tar $IMAGE_NAME
+      - persist_to_workspace:
+          root: .
+          paths:
+            - docker-image
+
+  push-to-ecr:
+    docker:
+      - image: wilson208/circleci-awscli
+    steps:
+      - checkout
+      - setup_remote_docker
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: Set Environment Variables
+          command: |
+            echo 'export IMAGE_NAME="airbloc/$CIRCLE_PROJECT_REPONAME"' >> $BASH_ENV
+      - run:
+          name: Login to Amazon ECR
+          command: eval $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
+      - run:
+          name: Create Repo if not exist
+          command: |
+            curl -O https://gist.githubusercontent.com/therne/ac169d76d07fddf684d092540106d2f5/raw/4e30af17412779ea294fedb8cfe4365adf53789a/create-if-not-exists.sh
+            chmod +x ./create-if-not-exists.sh
+            ./create-if-not-exists.sh $IMAGE_NAME
+      - run:
+          name: Load Image
+          command: docker load --input workspace/docker-image/image.tar
+      - run:
+          # this automatically pushes the image to /airbloc/{git-repo-name}:{sha1 hash} on Amazon ECR.
+          # change it if you need it xD (e.g. to /airbridge)
+          name: Push image to ECR
+          command: |
+            docker tag $CIRCLE_PROJECT_REPONAME:$CIRCLE_SHA1 $AWS_ECR_URL/$IMAGE_NAME:latest
+            docker push $AWS_ECR_URL/$IMAGE_NAME:latest
+
+workflows:
+  build-deploy:
+    jobs:
+      - test
+      - build-docker
+      - push-to-ecr:
+          context: aws-ecr
+          requires:
+            - build-docker
+          filters:
+            branches:
+              only: master
