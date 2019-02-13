@@ -67,11 +67,11 @@ jobs:
       - run:
           name: End-to-End Test Container
           command: |
-            docker run -d -p 9090:9090 -p 8080:8080 --name testcontainer $IMAGE_NAME
+            docker run -d --name testcontainer $IMAGE_NAME
             sleep 5
             docker logs testcontainer
-            docker cp e2e.test testcontainer:/e2e.test
-            docker exec testcontainer /e2e.test -test.v
+            docker cp e2e.test testcontainer:/usr/local/bin/e2e.test
+            docker exec testcontainer e2e.test -test.v
       - run:
           name: Save image to an archive
           command: |
