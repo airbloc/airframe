@@ -1,6 +1,8 @@
 # NOTE THAT this file should be executed on project root.
 version: "3"
 services:
+  app:
+    image: ${IMAGE_NAME:-airbloc/airframe}
   start_app:
     image: dadarek/wait-for-dependencies
     depends_on:

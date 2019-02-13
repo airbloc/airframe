@@ -3,7 +3,7 @@ services:
   app:
     build: .
     container_name: airframe
-    image: airbloc/airframe:latest
+    image: airbloc/airframe
     ports:
       - "8080:8080"
       - "9090:9090"
