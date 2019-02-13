@@ -1,0 +1,12 @@
+version: "3"
+services:
+  app:
+    build: .
+    container_name: airframe
+    image: airbloc/airframe:latest
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    command:
+      - "airframe"
+      - "-d"
