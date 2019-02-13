@@ -59,23 +59,10 @@ jobs:
           name: Build Image
           command: docker build -t $IMAGE_NAME .
       - run:
-          # since CircleCI remote docker doesn't support connecting to spawned container, we can't use `make test-e2e`.
-          # the only way is to compile E2E test into a binary and inject to the container.
-          name: Build Test Executable
-          command: |
-            make FLAGS="-c -o ./e2e.test" test-e2e
-      - save_cache:
-          key: go-mod-v1-{{ checksum "go.sum" }}
-          paths:
-            - "/go/pkg/mod"
-      - run:
           name: End-to-End Test Container
           command: |
-            docker run -d --name testcontainer $IMAGE_NAME
-            sleep 5
-            docker logs testcontainer
-            docker cp ./e2e.test testcontainer:/e2e.test
-            docker exec testcontainer /e2e.test -test.v
+            docker-compose -f docker-compose.yml -f test/e2e/docker-compose.e2e.yml run start_app
+            docker-compose -f docker-compose.yml -f test/e2e/docker-compose.e2e.yml run e2e-tests
       - run:
           name: Save image to an archive
           command: |
