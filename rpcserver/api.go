@@ -10,6 +10,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
+)
+
 type API struct {
 	db database.Database
 }
@@ -27,9 +31,9 @@ func (api *API) GetObject(ctx context.Context, req *GetRequest) (*GetResponse, e
 	pub, _ := crypto.DecompressPubkey(obj.Owner[:])
 	ownerAddr := crypto.PubkeyToAddress(*pub)
 
-	data, _ := jsoniter.Marshal(obj.Data)
+	data, _ := json.MarshalToString(obj.Data)
 	return &GetResponse{
-		Data:  string(data),
+		Data:  data,
 		Owner: ownerAddr.Hex(),
 
 		CreatedAt:     uint64(obj.CreatedAt.UnixNano()),
@@ -43,7 +47,7 @@ func (api *API) PutObject(ctx context.Context, req *PutRequest) (*PutResponse, e
 	}
 
 	var data database.Payload
-	if err := jsoniter.Unmarshal([]byte(req.GetData()), &data); err != nil {
+	if err := json.UnmarshalFromString(req.GetData(), &data); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid data: '%s'", req.GetData())
 	}
 

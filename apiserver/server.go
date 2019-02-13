@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/airbloc/airframe/database"
 	"github.com/airbloc/logger"
+	"github.com/airbloc/logger/module/loggergin"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -21,7 +22,7 @@ func New(backend database.Database, port int, debug bool) *Server {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.New()
-	r.Use(Logger())
+	r.Use(loggergin.Middleware("api"))
 	r.Use(Recovery())
 	r.NoRoute(NotFound())
 
@@ -35,28 +36,14 @@ func New(backend database.Database, port int, debug bool) *Server {
 	}
 }
 
-func Logger() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		timer := log.Timer()
-		c.Next()
-		timer.End("HTTP", logger.Attrs{
-			"method": c.Request.Method,
-			"url":    getRequestPath(c.Request),
-			"status": c.Writer.Status(),
-			"client": c.ClientIP(),
-		})
-	}
-}
-
 func Recovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
-			if err := recover(); err != nil {
-				log.Error("panic recovered: %v", err, logger.Attrs{
-					"method": c.Request.Method,
-					"url":    getRequestPath(c.Request),
-					"client": c.ClientIP(),
-				})
+			if r := log.Recover(logger.Attrs{
+				"method": c.Request.Method,
+				"url":    getRequestPath(c.Request),
+				"client": c.ClientIP(),
+			}); r != nil {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 			}
 		}()

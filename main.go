@@ -4,20 +4,25 @@ import (
 	"github.com/airbloc/airframe/apiserver"
 	"github.com/airbloc/airframe/database"
 	"github.com/airbloc/airframe/rpcserver"
+	"github.com/airbloc/logger"
 	"github.com/pkg/errors"
 	"os"
+	"os/signal"
 	"runtime"
-	"sync"
-
-	"github.com/airbloc/logger"
+	"time"
 )
+
+type Server interface {
+	Start() error
+	Stop()
+}
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	config := LoadConfig()
 
 	log := logger.New("main")
-	log.Info("Using %s configuration", config.Profile)
+	log.Info("Using {} configuration", config.Profile)
 
 	db, err := initDatabase(config.Backend)
 	if err != nil {
@@ -25,28 +30,30 @@ func main() {
 		os.Exit(1)
 	}
 
-	api := apiserver.New(db, config.Port, config.Profile == "dev")
-	rpc := rpcserver.New(db, config.RpcPort, config.Profile == "dev")
+	// start API and RPC server
+	servers := map[string]Server{
+		"API": apiserver.New(db, config.Port, config.Profile == "dev"),
+		"RPC": rpcserver.New(db, config.RpcPort, config.Profile == "dev"),
+	}
+	for name, server := range servers {
+		go func() {
+			if err := server.Start(); err != nil {
+				log.Error("failed to start {} server", err, name)
+				os.Exit(1)
+			}
+		}()
+		time.Sleep(1 * time.Second)
+		log.Info("{} server started", name)
+	}
 
-	var wg sync.WaitGroup
-	wg.Add(2)
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
 
-	go func() {
-		if err := api.Start(); err != nil {
-			log.Error("failed to start api server", err)
-			os.Exit(1)
-		}
-		wg.Done()
-	}()
-
-	go func() {
-		if err := rpc.Start(); err != nil {
-			log.Error("failed to start rpc server", err)
-			os.Exit(1)
-		}
-		wg.Done()
-	}()
-	wg.Wait()
+	for _, server := range servers {
+		server.Stop()
+	}
+	log.Info("bye")
 }
 
 func initDatabase(backendType string) (database.Database, error) {
