@@ -2,10 +2,16 @@ package database
 
 import (
 	"bytes"
-	"encoding/gob"
+	"encoding/hex"
 	"fmt"
+	"github.com/airbloc/logger"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/json-iterator/go"
 	"golang.org/x/crypto/sha3"
+)
+
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 func IsOwner(obj *Object, sig []byte) bool {
@@ -16,6 +22,15 @@ func IsOwner(obj *Object, sig []byte) bool {
 		return false
 	}
 	recovered := crypto.CompressPubkey(pub)
+
+	logger.New("database").Debug("IsOwner({type}, {id}, {owner})", logger.Attrs{
+		"type": obj.Type,
+		"id":   obj.ID,
+		"hash": hash,
+
+		"recovered": hex.EncodeToString(recovered),
+		"owner":     hex.EncodeToString(obj.Owner[:]),
+	})
 	return bytes.Equal(recovered, obj.Owner[:])
 }
 
@@ -33,8 +48,7 @@ func GetOwnerFromSignature(obj *Object, sig []byte) (PublicKey, error) {
 }
 
 func GetObjectHash(typ, id string, data Payload) [32]byte {
-	rawData := new(bytes.Buffer)
-	gob.NewEncoder(rawData).Encode(data)
-	typAndId := fmt.Sprintf("%s/%s", typ, id)
-	return sha3.Sum256(append([]byte(typAndId), rawData.Bytes()...))
+	rawData, _ := json.MarshalToString(data)
+	preimage := fmt.Sprintf("%s/%s/%s", typ, id, rawData)
+	return sha3.Sum256([]byte(preimage))
 }
