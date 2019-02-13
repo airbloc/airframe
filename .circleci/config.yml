@@ -24,6 +24,7 @@ jobs:
       - run:
           name: Setup test tools
           command: |
+            cp go.sum go.sum.original
             go get github.com/jstemmer/go-junit-report
             mkdir $TEST_RESULTS
       - run:
@@ -33,7 +34,7 @@ jobs:
             make test | tee ${TEST_RESULTS}/go-test.out
             cat ${TEST_RESULTS}/go-test.out | go-junit-report > ${TEST_RESULTS}/go-test-report.xml
       - save_cache:
-          key: go-mod-v1-{{ checksum "go.sum" }}
+          key: go-mod-v1-{{ checksum "go.sum.original" }}
           paths:
             - "/go/pkg/mod"
       - store_test_results:
@@ -44,6 +45,10 @@ jobs:
       - image: circleci/golang:1.11
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+            - go-mod-v1-
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
@@ -63,14 +68,19 @@ jobs:
           name: End-to-End Test Container
           command: |
             docker run -d -p 9090:9090 -p 8080:8080 --name testcontainer $IMAGE_NAME
-            sleep 10
+            sleep 5
+            docker logs testcontainer
             docker cp e2e.test testcontainer:/e2e.test
-            docker exec testcontainer /test.e2e -test.v
+            docker exec testcontainer /e2e.test -test.v
       - run:
           name: Save image to an archive
           command: |
             mkdir docker-image
             docker save -o docker-image/image.tar $IMAGE_NAME
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
       - persist_to_workspace:
           root: .
           paths:
