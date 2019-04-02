@@ -2,7 +2,8 @@ syntax = "proto3";
 option go_package = "rpcserver";
 
 message GetRequest {
-    string uri = 1;
+    string type = 1;
+    string id = 2;
 }
 
 message GetResponse {
@@ -10,6 +11,17 @@ message GetResponse {
     string owner = 2;
     uint64 createdAt = 3;
     uint64 lastUpdatedAt = 4;
+}
+
+message QueryRequest {
+    string type = 1;
+    string query = 2;
+    uint64 skip = 3;
+    uint64 limit = 4;
+}
+
+message QueryResponse {
+    repeated GetResponse results = 1;
 }
 
 message PutRequest {
@@ -26,5 +38,6 @@ message PutResponse {
 
 service API {
     rpc GetObject(GetRequest) returns (GetResponse) {}
+    rpc QueryObject(QueryRequest) returns (QueryResponse) {}
     rpc PutObject(PutRequest) returns (PutResponse) {}
 }
