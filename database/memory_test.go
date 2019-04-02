@@ -61,28 +61,28 @@ func TestInMemoryDatabase_Query(t *testing.T) {
 	require.NoError(t, err)
 
 	// test equals
-	q, err := queryFromJson(`{"foo": "bar"}`)
+	q, err := QueryFromJson(`{"foo": "bar"}`)
 	require.NoError(t, err)
 	results, err := imdb.Query("testdata", q, 0, 0)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(results))
 
 	// test contains
-	q, err = queryFromJson(`{"foo": {"contains": "b"}}`)
+	q, err = QueryFromJson(`{"foo": {"contains": "b"}}`)
 	require.NoError(t, err)
 	results, err = imdb.Query("testdata", q, 0, 0)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(results))
 
 	// test skip
-	q, err = queryFromJson(`{"foo": {"contains": "b"}}`)
+	q, err = QueryFromJson(`{"foo": {"contains": "b"}}`)
 	require.NoError(t, err)
 	results, err = imdb.Query("testdata", q, 1, 0)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(results))
 
 	// test limit
-	q, err = queryFromJson(`{"foo": {"contains": "b"}}`)
+	q, err = QueryFromJson(`{"foo": {"contains": "b"}}`)
 	require.NoError(t, err)
 	results, err = imdb.Query("testdata", q, 0, 1)
 	require.NoError(t, err)

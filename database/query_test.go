@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestQuery_Equals(t *testing.T) {
-	q, err := queryFromJson(`{"name": {"eq": "Hyojun Kim"}}`)
+func TestQueryFromJson_Equals(t *testing.T) {
+	q, err := QueryFromJson(`{"name": {"eq": "Hyojun Kim"}}`)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(q.Conditions))
 	require.Equal(t, OperatorType(OpEquals), q.Conditions[0].Type)
@@ -14,8 +14,8 @@ func TestQuery_Equals(t *testing.T) {
 	require.Equal(t, "Hyojun Kim", q.Conditions[0].Operand)
 }
 
-func TestQuery_EqualsAbbr(t *testing.T) {
-	q, err := queryFromJson(`{"name": "Hyojun Kim"}`)
+func TestQueryFromJson_EqualsAbbr(t *testing.T) {
+	q, err := QueryFromJson(`{"name": "Hyojun Kim"}`)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(q.Conditions))
 	require.Equal(t, OperatorType(OpEquals), q.Conditions[0].Type)
@@ -23,8 +23,8 @@ func TestQuery_EqualsAbbr(t *testing.T) {
 	require.Equal(t, "Hyojun Kim", q.Conditions[0].Operand)
 }
 
-func TestQuery_Gte(t *testing.T) {
-	q, err := queryFromJson(`{"age": {"gte": 20}}`)
+func TestQueryFromJson_Gte(t *testing.T) {
+	q, err := QueryFromJson(`{"age": {"gte": 20}}`)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(q.Conditions))
 	require.Equal(t, OperatorType(OpGreaterThanOrEqual), q.Conditions[0].Type)

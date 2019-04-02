@@ -46,7 +46,7 @@ type Query struct {
 }
 
 // queryFromJson parses JSON query into Query object.
-func queryFromJson(rawQuery string) (*Query, error) {
+func QueryFromJson(rawQuery string) (*Query, error) {
 	q := make(map[string]interface{})
 	json.UnmarshalFromString(rawQuery, &q)
 
