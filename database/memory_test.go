@@ -49,6 +49,46 @@ func TestInMemoryDatabase_Get(t *testing.T) {
 	require.Equal(t, testData1, obj.Data)
 }
 
+func TestInMemoryDatabase_Query(t *testing.T) {
+	imdb, _ := NewInMemoryDatabase()
+	priv, _ := crypto.GenerateKey()
+
+	sig := getSignature(priv, "testdata", "1", testData1)
+	_, err := imdb.Put("testdata", "1", testData1, sig)
+	require.NoError(t, err)
+	sig = getSignature(priv, "testdata", "2", testData2)
+	_, err = imdb.Put("testdata", "2", testData2, sig)
+	require.NoError(t, err)
+
+	// test equals
+	q, err := queryFromJson(`{"foo": "bar"}`)
+	require.NoError(t, err)
+	results, err := imdb.Query("testdata", q, 0, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(results))
+
+	// test contains
+	q, err = queryFromJson(`{"foo": {"contains": "b"}}`)
+	require.NoError(t, err)
+	results, err = imdb.Query("testdata", q, 0, 0)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(results))
+
+	// test skip
+	q, err = queryFromJson(`{"foo": {"contains": "b"}}`)
+	require.NoError(t, err)
+	results, err = imdb.Query("testdata", q, 1, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(results))
+
+	// test limit
+	q, err = queryFromJson(`{"foo": {"contains": "b"}}`)
+	require.NoError(t, err)
+	results, err = imdb.Query("testdata", q, 0, 1)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(results))
+}
+
 func TestInMemoryDatabase_Exists(t *testing.T) {
 	imdb, _ := NewInMemoryDatabase()
 	priv, _ := crypto.GenerateKey()
