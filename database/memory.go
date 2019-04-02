@@ -35,17 +35,25 @@ func (imdb *InMemoryDatabase) Exists(typ, id string) (bool, error) {
 	return false, nil
 }
 
-func (imdb *InMemoryDatabase) Query(typ string, q Query, skip, limit int) (results []*Object, err error) {
+func (imdb *InMemoryDatabase) Query(typ string, q *Query, skip, limit int) (results []*Object, err error) {
 	results = []*Object{}
 
 	objects := imdb.objects[typ]
-	if objects != nil {
+	if objects == nil {
 		return
 	}
+	skipped := 0
 	for _, obj := range objects {
 		for _, op := range q.Conditions {
 			if compare(obj, op) {
-				results = append(results, obj)
+				if skipped == skip {
+					results = append(results, obj)
+				} else {
+					skipped++
+				}
+				if limit > 0 && len(results) == limit {
+					return
+				}
 			}
 		}
 	}

@@ -1,7 +1,6 @@
 package database
 
 import (
-	"github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
 
@@ -49,7 +48,7 @@ type Query struct {
 // queryFromJson parses JSON query into Query object.
 func queryFromJson(rawQuery string) (*Query, error) {
 	q := make(map[string]interface{})
-	jsoniter.UnmarshalFromString(rawQuery, q)
+	json.UnmarshalFromString(rawQuery, &q)
 
 	query := &Query{
 		Type:       QueryAnd,
