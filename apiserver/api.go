@@ -30,7 +30,7 @@ func RegisterV1API(r *gin.Engine, db database.Database) {
 		hash := database.GetObjectHash("testdata", "deadbeef", database.Payload{"foo": "bar"})
 		sig, _ := crypto.Sign(hash[:], priv)
 
-		if _, err := db.Put("testdata", "deadbeef", database.Payload{"foo": "bar"}, sig); err != nil {
+		if _, err := db.Put(c, "testdata", "deadbeef", database.Payload{"foo": "bar"}, sig); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -40,7 +40,7 @@ func RegisterV1API(r *gin.Engine, db database.Database) {
 
 func handleGetObject(db database.Database) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		obj, err := db.Get(c.Param("type"), c.Param("id"))
+		obj, err := db.Get(c, c.Param("type"), c.Param("id"))
 		if err != nil {
 			if err == database.ErrNotExists {
 				c.JSON(http.StatusNotFound, gin.H{"error": "resource not found"})
@@ -73,7 +73,7 @@ func handleQuery(db database.Database) gin.HandlerFunc {
 			return
 		}
 
-		objects, err := db.Query(c.Param("type"), query, limit, skip)
+		objects, err := db.Query(c, c.Param("type"), query, limit, skip)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -106,7 +106,7 @@ func handlePutObject(db database.Database) gin.HandlerFunc {
 			return
 		}
 
-		result, err := db.Put(typ, id, req.Data, sig)
+		result, err := db.Put(c, typ, id, req.Data, sig)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

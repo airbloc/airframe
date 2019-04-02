@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"github.com/pkg/errors"
 	"time"
 )
@@ -23,10 +24,10 @@ type PublicKey [33]byte
 type Payload map[string]interface{}
 
 type Database interface {
-	Get(typ, id string) (*Object, error)
-	Exists(typ, id string) (bool, error)
-	Query(typ string, query *Query, skip, limit int) ([]*Object, error)
-	Put(typ, id string, data Payload, signature []byte) (*PutResult, error)
+	Get(ctx context.Context, typ, id string) (*Object, error)
+	Exists(ctx context.Context, typ, id string) (bool, error)
+	Query(ctx context.Context, typ string, query *Query, skip, limit int) ([]*Object, error)
+	Put(ctx context.Context, typ, id string, data Payload, signature []byte) (*PutResult, error)
 }
 
 type Object struct {

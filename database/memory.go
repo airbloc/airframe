@@ -2,6 +2,7 @@ package database
 
 import (
 	"bytes"
+	"context"
 	"github.com/pkg/errors"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ func NewInMemoryDatabase() (Database, error) {
 	}, nil
 }
 
-func (imdb *InMemoryDatabase) Get(typ, id string) (*Object, error) {
+func (imdb *InMemoryDatabase) Get(ctx context.Context, typ, id string) (*Object, error) {
 	if objects, ok := imdb.objects[typ]; ok {
 		if obj, ok := objects[id]; ok {
 			return obj, nil
@@ -26,7 +27,7 @@ func (imdb *InMemoryDatabase) Get(typ, id string) (*Object, error) {
 	return nil, ErrNotExists
 }
 
-func (imdb *InMemoryDatabase) Exists(typ, id string) (bool, error) {
+func (imdb *InMemoryDatabase) Exists(ctx context.Context, typ, id string) (bool, error) {
 	if objects, ok := imdb.objects[typ]; ok {
 		if _, ok := objects[id]; ok {
 			return true, nil
@@ -35,7 +36,7 @@ func (imdb *InMemoryDatabase) Exists(typ, id string) (bool, error) {
 	return false, nil
 }
 
-func (imdb *InMemoryDatabase) Query(typ string, q *Query, skip, limit int) (results []*Object, err error) {
+func (imdb *InMemoryDatabase) Query(ctx context.Context, typ string, q *Query, skip, limit int) (results []*Object, err error) {
 	results = []*Object{}
 
 	objects := imdb.objects[typ]
@@ -89,12 +90,12 @@ func compare(obj *Object, op Operator) bool {
 	return false
 }
 
-func (imdb *InMemoryDatabase) Put(typ, id string, data Payload, signature []byte) (*PutResult, error) {
+func (imdb *InMemoryDatabase) Put(ctx context.Context, typ, id string, data Payload, signature []byte) (*PutResult, error) {
 	if strings.Contains(id, "/") {
 		return nil, ErrInvalidID
 	}
 
-	exists, err := imdb.Exists(typ, id)
+	exists, err := imdb.Exists(ctx, typ, id)
 	if err != nil {
 		return nil, errors.Wrap(err, "error while checking existence")
 	}
