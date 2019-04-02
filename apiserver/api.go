@@ -73,7 +73,7 @@ func handleQuery(db database.Database) gin.HandlerFunc {
 			return
 		}
 
-		objects, err := db.Query(c, c.Param("type"), query, limit, skip)
+		objects, err := db.Query(c, c.Param("type"), query, skip, limit)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
