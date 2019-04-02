@@ -23,8 +23,9 @@ type PublicKey [33]byte
 type Payload map[string]interface{}
 
 type Database interface {
-	Get(uri string) (*Object, error)
+	Get(typ, id string) (*Object, error)
 	Exists(typ, id string) (bool, error)
+	Query(typ string, query Query, skip, limit int) ([]*Object, error)
 	Put(typ, id string, data Payload, signature []byte) (*PutResult, error)
 }
 

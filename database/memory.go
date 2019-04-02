@@ -1,38 +1,84 @@
 package database
 
 import (
+	"bytes"
 	"github.com/pkg/errors"
 	"strings"
 	"time"
 )
 
 type InMemoryDatabase struct {
-	objects map[string]*Object
+	objects map[string]map[string]*Object
 }
 
 func NewInMemoryDatabase() (Database, error) {
 	return &InMemoryDatabase{
-		objects: map[string]*Object{},
+		objects: make(map[string]map[string]*Object),
 	}, nil
 }
 
-func (imdb *InMemoryDatabase) Get(uri string) (*Object, error) {
-	pathSegs := strings.Split(uri, "/")
-	if len(pathSegs) < 3 {
-		return nil, errors.New("invalid URI")
+func (imdb *InMemoryDatabase) Get(typ, id string) (*Object, error) {
+	if objects, ok := imdb.objects[typ]; ok {
+		if obj, ok := objects[id]; ok {
+			return obj, nil
+		}
 	}
-	typ, id := pathSegs[1], pathSegs[2]
-
-	if obj, ok := imdb.objects[typ+"/"+id]; !ok {
-		return nil, ErrNotExists
-	} else {
-		return obj, nil
-	}
+	return nil, ErrNotExists
 }
 
 func (imdb *InMemoryDatabase) Exists(typ, id string) (bool, error) {
-	_, exists := imdb.objects[typ+"/"+id]
-	return exists, nil
+	if objects, ok := imdb.objects[typ]; ok {
+		if _, ok := objects[id]; ok {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (imdb *InMemoryDatabase) Query(typ string, q Query, skip, limit int) (results []*Object, err error) {
+	results = []*Object{}
+
+	objects := imdb.objects[typ]
+	if objects != nil {
+		return
+	}
+	for _, obj := range objects {
+		for _, op := range q.Conditions {
+			if compare(obj, op) {
+				results = append(results, obj)
+			}
+		}
+	}
+	return
+}
+
+func compare(obj *Object, op Operator) bool {
+	fieldVal := obj.Data[op.Field]
+	switch op.Type {
+	case OpEquals:
+		return fieldVal == op.Operand
+	case OpGreaterThan:
+		return fieldVal.(int) > op.Operand.(int)
+	case OpGreaterThanOrEqual:
+		return fieldVal.(int) >= op.Operand.(int)
+	case OpLessThan:
+		return fieldVal.(int) < op.Operand.(int)
+	case OpLessThanOrEqual:
+		return fieldVal.(int) <= op.Operand.(int)
+	case OpContains:
+		if fieldValStr, ok := fieldVal.(string); ok {
+			return strings.Contains(fieldValStr, op.Operand.(string))
+		}
+		if fieldValBytes, ok := fieldVal.([]byte); ok {
+			return bytes.Contains(fieldValBytes, op.Operand.([]byte))
+		}
+		for _, elem := range fieldVal.([]interface{}) {
+			if elem == op.Operand {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (imdb *InMemoryDatabase) Put(typ, id string, data Payload, signature []byte) (*PutResult, error) {
@@ -47,7 +93,7 @@ func (imdb *InMemoryDatabase) Put(typ, id string, data Payload, signature []byte
 
 	if exists {
 		// update object
-		obj := imdb.objects[typ+"/"+id]
+		obj := imdb.objects[typ][id]
 
 		tmpObj := &Object{
 			Type:  typ,
@@ -79,7 +125,10 @@ func (imdb *InMemoryDatabase) Put(typ, id string, data Payload, signature []byte
 	if obj.Owner, err = GetOwnerFromSignature(obj, signature); err != nil {
 		return nil, errors.Wrap(err, "invalid signature")
 	}
-	imdb.objects[typ+"/"+id] = obj
+	if _, collectionExists := imdb.objects[typ]; !collectionExists {
+		imdb.objects[typ] = make(map[string]*Object)
+	}
+	imdb.objects[typ][id] = obj
 	return &PutResult{
 		FeeUsed: 0,
 		Created: true,

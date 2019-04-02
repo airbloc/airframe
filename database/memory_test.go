@@ -44,7 +44,7 @@ func TestInMemoryDatabase_Get(t *testing.T) {
 	_, err := imdb.Put("testdata", "1", testData1, sig[:])
 	require.NoError(t, err)
 
-	obj, err := imdb.Get("/testdata/1")
+	obj, err := imdb.Get("testdata", "1")
 	require.NoError(t, err)
 	require.Equal(t, testData1, obj.Data)
 }
