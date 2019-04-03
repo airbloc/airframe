@@ -3,6 +3,7 @@ package database
 import (
 	"bytes"
 	"context"
+	"github.com/airbloc/airframe/auth"
 	"github.com/pkg/errors"
 	"strings"
 	"time"
@@ -95,22 +96,19 @@ func (imdb *InMemoryDatabase) Put(ctx context.Context, typ, id string, data Payl
 		return nil, ErrInvalidID
 	}
 
-	exists, err := imdb.Exists(ctx, typ, id)
+	obj, err := imdb.Get(ctx, typ, id)
 	if err != nil {
 		return nil, errors.Wrap(err, "error while checking existence")
 	}
-
-	if exists {
+	if obj != nil {
 		// update object
-		obj := imdb.objects[typ][id]
-
-		tmpObj := &Object{
-			Type:  typ,
-			ID:    id,
-			Data:  data,
-			Owner: obj.Owner,
+		signer, err := auth.GetSigner(typ, id, data, signature)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to recover signature")
 		}
-		if !IsOwner(tmpObj, signature) {
+
+		// object owners can only update the existing object.
+		if !bytes.Equal(signer[:], obj.Owner[:]) {
 			return nil, ErrNotAuthorized
 		}
 		obj.Data = data
@@ -123,7 +121,7 @@ func (imdb *InMemoryDatabase) Put(ctx context.Context, typ, id string, data Payl
 	}
 
 	// create new
-	obj := &Object{
+	obj = &Object{
 		ID:   id,
 		Type: typ,
 		Data: data,
@@ -131,7 +129,7 @@ func (imdb *InMemoryDatabase) Put(ctx context.Context, typ, id string, data Payl
 		CreatedAt:     time.Now(),
 		LastUpdatedAt: time.Now(),
 	}
-	if obj.Owner, err = GetOwnerFromSignature(obj, signature); err != nil {
+	if obj.Owner, err = auth.GetSigner(typ, id, data, signature); err != nil {
 		return nil, errors.Wrap(err, "invalid signature")
 	}
 	if _, collectionExists := imdb.objects[typ]; !collectionExists {

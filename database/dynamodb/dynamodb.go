@@ -2,7 +2,9 @@
 package dynamodatabase
 
 import (
+	"bytes"
 	"context"
+	"github.com/airbloc/airframe/auth"
 	"github.com/airbloc/airframe/database"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -133,17 +135,23 @@ func (db *DynamoDatabase) Put(ctx context.Context, typ, id string, data database
 			CreatedAt:     time.Now(),
 			LastUpdatedAt: time.Now(),
 		}
-		if obj.Owner, err = database.GetOwnerFromSignature(obj, signature); err != nil {
+		if obj.Owner, err = auth.GetSigner(typ, id, data, signature); err != nil {
 			return nil, errors.Wrap(err, "invalid signature")
 		}
 		created = true
 
 	} else if err == nil {
 		// update object
-		obj.Data = data
-		if !database.IsOwner(obj, signature) {
+		signer, err := auth.GetSigner(typ, id, data, signature)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to recover signature")
+		}
+
+		// only object owners can update the object
+		if !bytes.Equal(signer[:], obj.Owner[:]) {
 			return nil, database.ErrNotAuthorized
 		}
+		obj.Data = data
 		obj.LastUpdatedAt = time.Now()
 
 	} else {

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
 
@@ -16,6 +17,7 @@ const (
 )
 
 var (
+	json          = jsoniter.ConfigCompatibleWithStandardLibrary
 	operatorTypes = map[string]OperatorType{
 		"eq":       OpEquals,
 		"gt":       OpGreaterThan,

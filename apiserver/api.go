@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"github.com/airbloc/airframe/auth"
 	"github.com/airbloc/airframe/database"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -27,7 +28,7 @@ func RegisterV1API(r *gin.Engine, db database.Database) {
 	// health check
 	route.GET("/", func(c *gin.Context) {
 		priv, _ := crypto.GenerateKey()
-		hash := database.GetObjectHash("testdata", "deadbeef", database.Payload{"foo": "bar"})
+		hash := auth.GetObjectHash("testdata", "deadbeef", database.Payload{"foo": "bar"})
 		sig, _ := crypto.Sign(hash[:], priv)
 
 		if _, err := db.Put(c, "testdata", "deadbeef", database.Payload{"foo": "bar"}, sig); err != nil {
