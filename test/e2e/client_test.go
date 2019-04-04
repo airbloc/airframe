@@ -1,19 +1,27 @@
 package e2e_test
 
 import (
+	"context"
 	"github.com/airbloc/airframe/afclient"
 	"github.com/airbloc/airframe/test/utils"
 	"github.com/ethereum/go-ethereum/crypto"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"time"
 )
 
 var _ = Describe("afclient", func() {
 	var endpoint string
+	var ctx context.Context
+	var cancel context.CancelFunc
 	key, _ := crypto.GenerateKey()
 
 	BeforeEach(func() {
 		endpoint = testutils.LookupEnv("ENDPOINT", "localhost:9090")
+		ctx, cancel = context.WithTimeout(context.Background(), 3 * time.Second)
+	})
+	AfterEach(func() {
+		cancel()
 	})
 
 	It("should Dial", func() {
@@ -25,7 +33,7 @@ var _ = Describe("afclient", func() {
 		client, err := afclient.Dial(endpoint, key)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		res, err := client.Put("testdata", "deadbeef", afclient.M{"foo": "bar"})
+		res, err := client.Put(ctx, "testdata", "deadbeef", afclient.M{"foo": "bar"})
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(res.Created).Should(BeTrue())
 	})
@@ -34,10 +42,10 @@ var _ = Describe("afclient", func() {
 		client, err := afclient.Dial(endpoint, key)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		_, err = client.Put("testdata", "b0b0beef", afclient.M{"foo": "bar"})
+		_, err = client.Put(ctx, "testdata", "b0b0beef", afclient.M{"foo": "bar"})
 		Ω(err).ShouldNot(HaveOccurred())
 
-		obj, err := client.Get("/testdata/b0b0beef")
+		obj, err := client.Get(ctx, "testdata", "b0b0beef")
 		Ω(obj.Data).Should(Equal(afclient.M{"foo": "bar"}))
 		Ω(obj.Owner).Should(Equal(crypto.PubkeyToAddress(key.PublicKey)))
 	})
@@ -46,15 +54,15 @@ var _ = Describe("afclient", func() {
 		client, err := afclient.Dial(endpoint, key)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		resCreate, err := client.Put("testdata", "cafebabe", afclient.M{"foo": "bar"})
+		resCreate, err := client.Put(ctx, "testdata", "cafebabe", afclient.M{"foo": "bar"})
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(resCreate.Created).Should(BeTrue())
 
-		resUpdate, err := client.Put("testdata", "cafebabe", afclient.M{"foo": "baz"})
+		resUpdate, err := client.Put(ctx, "testdata", "cafebabe", afclient.M{"foo": "baz"})
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(resUpdate.Created).Should(BeFalse())
 
-		obj, err := client.Get("/testdata/cafebabe")
+		obj, err := client.Get(ctx, "testdata", "cafebabe")
 		Ω(obj.Data).Should(Equal(afclient.M{"foo": "baz"}))
 	})
 
@@ -67,11 +75,11 @@ var _ = Describe("afclient", func() {
 		client2, err := afclient.Dial(endpoint, otherKey)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		_, err = client.Put("testdata", "00abcdef", afclient.M{"foo": "bar"})
+		_, err = client.Put(ctx, "testdata", "00abcdef", afclient.M{"foo": "bar"})
 		Ω(err).ShouldNot(HaveOccurred())
 
 		// others are trying to modify object
-		_, err = client2.Put("testdata", "00abcdef", afclient.M{"foo": "baz"})
-		Ω(err).Should(HaveOccurred())
+		_, err = client2.Put(ctx, "testdata", "00abcdef", afclient.M{"foo": "baz"})
+		Ω(err).Should(Equal(afclient.ErrNotAuthorized))
 	})
 })
