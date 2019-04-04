@@ -1,16 +1,6 @@
-# You need to set up following environment variables at CircleCI Contexts:
-# Context Name: aws-ecr
-# Environment Variables:
-# - AWS_ECR_URL
-# - AWS_ACCESS_KEY_ID
-# - AWS_SECRET_ACCESS_KEY
-# - AWS_DEFAULT_REGION
-version: 2.1
-orbs:
-  aws-ecs: circleci/aws-ecs@0.0.3
-
+version: 2
 jobs:
-  test:
+  unit-test:
     docker:
       - image: circleci/golang:1.11
     environment:
@@ -25,14 +15,12 @@ jobs:
           name: Setup test tools
           command: |
             cp go.sum go.sum.original
-            go get github.com/jstemmer/go-junit-report
-            mkdir $TEST_RESULTS
+            mkdir -p $TEST_RESULTS/gotest
       - run:
           name: Run unit tests
           command: |
             echo 'export GO111MODULE=on' >> $BASH_ENV
-            make test | tee ${TEST_RESULTS}/go-test.out
-            cat ${TEST_RESULTS}/go-test.out | go-junit-report > ${TEST_RESULTS}/go-test-report.xml
+            GOTEST="gotestsum --junitfile ${TEST_RESULTS}/gotest/results.xml --" make test
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum.original" }}
           paths:
@@ -40,80 +28,31 @@ jobs:
       - store_test_results:
           path: /tmp/test-results
 
-  build-docker:
+  e2e-test:
     docker:
       - image: circleci/golang:1.11
+    environment:
+      TEST_RESULTS: "/tmp/test-results"
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - go-mod-v1-{{ checksum "go.sum" }}
-            - go-mod-v1-
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          name: Set Up Environment Variables for Docker
+          name: Setup test tools
           command: |
-            echo 'export IMAGE_NAME="${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}"' >> $BASH_ENV
+            mkdir -p $TEST_RESULTS/e2etest
       - run:
           name: Build Image
-          command: docker build -t $IMAGE_NAME .
+          command: docker build -t airbloc/airframe .
       - run:
           name: End-to-End Test Container
           command: |
             docker-compose -f docker-compose.yml -f test/e2e/docker-compose.e2e.yml run start_app
             docker-compose -f docker-compose.yml -f test/e2e/docker-compose.e2e.yml run e2e-tests
-      - run:
-          name: Save image to an archive
-          command: |
-            mkdir docker-image
-            docker save -o docker-image/image.tar $IMAGE_NAME
-      - persist_to_workspace:
-          root: .
-          paths:
-            - docker-image
-
-  push-to-ecr:
-    docker:
-      - image: wilson208/circleci-awscli
-    steps:
-      - checkout
-      - setup_remote_docker
-      - attach_workspace:
-          at: workspace
-      - run:
-          name: Set Environment Variables
-          command: |
-            echo 'export IMAGE_NAME="airbloc/$CIRCLE_PROJECT_REPONAME"' >> $BASH_ENV
-      - run:
-          name: Login to Amazon ECR
-          command: eval $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
-      - run:
-          name: Create Repo if not exist
-          command: |
-            curl -O https://gist.githubusercontent.com/therne/ac169d76d07fddf684d092540106d2f5/raw/4e30af17412779ea294fedb8cfe4365adf53789a/create-if-not-exists.sh
-            chmod +x ./create-if-not-exists.sh
-            ./create-if-not-exists.sh $IMAGE_NAME
-      - run:
-          name: Load Image
-          command: docker load --input workspace/docker-image/image.tar
-      - run:
-          # this automatically pushes the image to /airbloc/{git-repo-name}:{sha1 hash} on Amazon ECR.
-          # change it if you need it xD (e.g. to /airbridge)
-          name: Push image to ECR
-          command: |
-            docker tag $CIRCLE_PROJECT_REPONAME:$CIRCLE_SHA1 $AWS_ECR_URL/$IMAGE_NAME:$CIRCLE_SHA1
-            docker push $AWS_ECR_URL/$IMAGE_NAME:$CIRCLE_SHA1
 
 workflows:
-  build-deploy:
+  version: 2
+  test:
     jobs:
-      - test
-      - build-docker
-      - push-to-ecr:
-          context: aws-ecr
-          requires:
-            - build-docker
-          filters:
-            branches:
-              only: master
+      - unit-test
+      - e2e-test
