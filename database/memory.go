@@ -95,12 +95,30 @@ func (imdb *InMemoryDatabase) Put(ctx context.Context, typ, id string, data Payl
 	if strings.Contains(id, "/") {
 		return nil, ErrInvalidID
 	}
-
 	obj, err := imdb.Get(ctx, typ, id)
-	if err != nil {
-		return nil, errors.Wrap(err, "error while checking existence")
-	}
-	if obj != nil {
+	if err == ErrNotExists {
+		// create new
+		obj = &Object{
+			ID:   id,
+			Type: typ,
+			Data: data,
+
+			CreatedAt:     time.Now(),
+			LastUpdatedAt: time.Now(),
+		}
+		if obj.Owner, err = auth.GetSigner(typ, id, data, signature); err != nil {
+			return nil, errors.Wrap(err, "invalid signature")
+		}
+		if _, collectionExists := imdb.objects[typ]; !collectionExists {
+			imdb.objects[typ] = make(map[string]*Object)
+		}
+		imdb.objects[typ][id] = obj
+		return &PutResult{
+			FeeUsed: 0,
+			Created: true,
+		}, nil
+
+	} else if obj != nil {
 		// update object
 		signer, err := auth.GetSigner(typ, id, data, signature)
 		if err != nil {
@@ -118,26 +136,7 @@ func (imdb *InMemoryDatabase) Put(ctx context.Context, typ, id string, data Payl
 			FeeUsed: 0,
 			Created: false,
 		}, nil
+	} else {
+		return nil, errors.Wrap(err, "error while checking existence")
 	}
-
-	// create new
-	obj = &Object{
-		ID:   id,
-		Type: typ,
-		Data: data,
-
-		CreatedAt:     time.Now(),
-		LastUpdatedAt: time.Now(),
-	}
-	if obj.Owner, err = auth.GetSigner(typ, id, data, signature); err != nil {
-		return nil, errors.Wrap(err, "invalid signature")
-	}
-	if _, collectionExists := imdb.objects[typ]; !collectionExists {
-		imdb.objects[typ] = make(map[string]*Object)
-	}
-	imdb.objects[typ][id] = obj
-	return &PutResult{
-		FeeUsed: 0,
-		Created: true,
-	}, nil
 }

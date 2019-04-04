@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"crypto/ecdsa"
+	"github.com/airbloc/airframe/auth"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -15,7 +16,7 @@ var (
 
 func getSignature(priv *ecdsa.PrivateKey, typ, id string, data Payload) []byte {
 	// generate signature
-	hash := GetObjectHash(typ, id, data)
+	hash := auth.GetObjectHash(typ, id, data)
 	sig, _ := crypto.Sign(hash[:], priv)
 	return sig
 }
@@ -50,6 +51,15 @@ func TestInMemoryDatabase_Get(t *testing.T) {
 	obj, err := imdb.Get(ctx, "testdata", "1")
 	require.NoError(t, err)
 	require.Equal(t, testData1, obj.Data)
+}
+
+func TestInMemoryDatabase_Get_ErrorOnMissingKey(t *testing.T) {
+	ctx := context.TODO()
+	imdb, _ := NewInMemoryDatabase()
+	obj, err := imdb.Get(ctx, "testdata", "1")
+
+	require.Equal(t, ErrNotExists, err)
+	require.Nil(t, obj)
 }
 
 func TestInMemoryDatabase_Query(t *testing.T) {

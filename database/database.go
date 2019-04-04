@@ -2,23 +2,18 @@ package database
 
 import (
 	"context"
+	"github.com/airbloc/airframe/auth"
 	"github.com/pkg/errors"
 	"time"
 )
 
 var (
-	// ErrInvalidURI is returned when given URI query format is invalid.
-	ErrInvalidURI = errors.New("invalid URI.")
-
 	ErrInvalidID = errors.New("invalid ID format.")
 	ErrNotExists = errors.New("given object not exists.")
 
 	// ErrNotAuthorized is raised when given signature mismatched with the object owner's one.
 	ErrNotAuthorized = errors.New("you're not authorized to update the object.")
 )
-
-// PublicKey is 33-byte compressed ECDSA public key.
-type PublicKey [33]byte
 
 // Payload is a shorthand of `map[string]interface{}`.
 type Payload map[string]interface{}
@@ -32,10 +27,10 @@ type Database interface {
 
 type Object struct {
 	ID   string
-	Type string
+	Type string `dynamo:"-"`
 	Data Payload
 
-	Owner PublicKey
+	Owner auth.PublicKey
 
 	// timestamps
 	CreatedAt     time.Time
