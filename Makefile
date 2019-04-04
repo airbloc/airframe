@@ -4,6 +4,9 @@ export GO111MODULE=on
 TARGET := $(shell echo $${PWD\#\#*/})
 .DEFAULT_GOAL: $(TARGET)
 
+# test runner (can be overriden by CI)
+GOTEST ?= go test
+
 # go source files, ignore vendor directory
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
@@ -71,7 +74,7 @@ run: build
 test: test-all
 
 test-all:
-	@go test -v `go list ./... | grep -v test/e2e`
+	@$(GOTEST) -v `go list ./... | grep -v test/e2e`
 
 test-e2e:
-	@go test -v `go list ./test/e2e` $(FLAGS)
+	@$(GOTEST) -v `go list ./test/e2e` $(FLAGS)
