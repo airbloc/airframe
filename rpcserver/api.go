@@ -64,6 +64,9 @@ func (api *API) PutObject(ctx context.Context, req *pb.PutRequest) (*pb.PutRespo
 
 	result, err := api.db.Put(ctx, req.GetType(), req.GetId(), data, req.Signature)
 	if err != nil {
+		if err == database.ErrNotAuthorized {
+			return nil, status.Error(codes.Unauthenticated, err.Error())
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &pb.PutResponse{
