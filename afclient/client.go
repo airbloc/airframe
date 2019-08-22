@@ -7,9 +7,9 @@ import (
 	"github.com/airbloc/airframe/auth"
 	pb "github.com/airbloc/airframe/proto"
 	"github.com/airbloc/logger"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/json-iterator/go"
+	"github.com/klaytn/klaytn/common"
+	"github.com/klaytn/klaytn/crypto"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -114,7 +114,7 @@ func (c *client) Get(ctx context.Context, typ, id string) (*Object, error) {
 // using `afclient.WithSkip` or `afclient.WithLimit` options.
 func (c *client) Query(ctx context.Context, typ string, query M, options ...QueryOption) ([]*Object, error) {
 	opt := queryOptions{
-		skip: 0,
+		skip:  0,
 		limit: 0,
 	}
 	for _, applyFunc := range options {
@@ -128,7 +128,7 @@ func (c *client) Query(ctx context.Context, typ string, query M, options ...Quer
 
 	res, err := c.api.QueryObject(ctx, &pb.QueryRequest{
 		Query: q,
-		Type: typ,
+		Type:  typ,
 		Skip:  uint64(opt.skip),
 		Limit: uint64(opt.limit),
 	})

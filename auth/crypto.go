@@ -2,8 +2,8 @@ package auth
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/json-iterator/go"
+	"github.com/klaytn/klaytn/crypto"
 	"golang.org/x/crypto/sha3"
 )
 

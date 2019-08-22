@@ -3,9 +3,9 @@ package apiserver
 import (
 	"github.com/airbloc/airframe/auth"
 	"github.com/airbloc/airframe/database"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gin-gonic/gin"
+	"github.com/klaytn/klaytn/common/hexutil"
+	"github.com/klaytn/klaytn/crypto"
 	"net/http"
 	"strconv"
 )
