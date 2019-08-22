@@ -40,7 +40,7 @@ simplify:
 	@gofmt -s -l -w $(SRC)
 
 check:
-	@go tool vet ${SRC}
+	@go vet ./...
 
 deps:
 ifeq ($(shell which easyjson), )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"github.com/airbloc/airframe/auth"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/klaytn/klaytn/crypto"
 	"github.com/stretchr/testify/require"
 	"testing"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/airbloc/airframe/afclient"
 	"github.com/airbloc/airframe/test/utils"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/klaytn/klaytn/crypto"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"time"
@@ -18,7 +18,9 @@ var _ = Describe("afclient", func() {
 
 	BeforeEach(func() {
 		endpoint = testutils.LookupEnv("ENDPOINT", "localhost:9090")
-		ctx, cancel = context.WithTimeout(context.Background(), 3 * time.Second)
+		ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+		// prevent this: the cancel function is not used on all paths (possible context leak)
+		_ = cancel
 	})
 	AfterEach(func() {
 		cancel()
@@ -46,6 +48,7 @@ var _ = Describe("afclient", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		obj, err := client.Get(ctx, "testdata", "b0b0beef")
+		Ω(err).ShouldNot(HaveOccurred())
 		Ω(obj.Data).Should(Equal(afclient.M{"foo": "bar"}))
 		Ω(obj.Owner).Should(Equal(crypto.PubkeyToAddress(key.PublicKey)))
 	})
@@ -63,6 +66,7 @@ var _ = Describe("afclient", func() {
 		Ω(resUpdate.Created).Should(BeFalse())
 
 		obj, err := client.Get(ctx, "testdata", "cafebabe")
+		Ω(err).ShouldNot(HaveOccurred())
 		Ω(obj.Data).Should(Equal(afclient.M{"foo": "baz"}))
 	})
 
